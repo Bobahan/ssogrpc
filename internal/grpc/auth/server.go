@@ -14,18 +14,18 @@ import (
 const EMPTY_VALUE = 0
 
 // интерфейс сервисного слоя `Auth`, в реализациях этих методов будет содержаться основная бизнес логика
-type Auth interface {
+type IAuth interface {
 	Register(ctx context.Context, email string, password string) (userId int64, err error)
 	Login(ctx context.Context, email string, password string, appId int) (token string, err error)
 	IsAdmin(ctx context.Context, userId int64) (bool, error)
 }
 
 type serverApi struct {
-	ssov1.UnimplementedAuthServer      // дает возможность временно не реализовывать все методы
-	auth                          Auth // подключаем интерфейс Auth сервисного слоя
+	ssov1.UnimplementedAuthServer       // дает возможность временно не реализовывать все методы
+	auth                          IAuth // подключаем интерфейс Auth сервисного слоя
 }
 
-func PlugHandlers(gRPC *grpc.Server, auth Auth) {
+func PlugHandlers(gRPC *grpc.Server, auth IAuth) {
 	ssov1.RegisterAuthServer(gRPC, &serverApi{auth: auth}) // передаем Auth
 }
 
