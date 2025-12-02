@@ -33,6 +33,7 @@ type IUserProvider interface {
 	IsAdmin(ctx context.Context, userId int64) (bool, error)
 }
 
+// Получает/достает/извлекает app
 type IAppProvider interface {
 	App(ctx context.Context, appId int) (models.App, error)
 }
@@ -41,6 +42,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
+// Auth Сервисному слою не важно какая База Данных используется главное чтобы он удовлетворял interface: IUserSaver, IUserProvider, IAppProvider
 func New(logger *slog.Logger, userSaver IUserSaver, userProvider IUserProvider, appProvider IAppProvider, tokenTTL time.Duration) *Auth {
 	return &Auth{
 		logger:       logger,

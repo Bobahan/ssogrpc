@@ -3,8 +3,10 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"sso/internal/domain/models"
+	"sso/internal/storage"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -89,4 +91,27 @@ func (s *Storage) IsAdmin(ctx context.Context, userId int64) (bool, error) {
 	}
 
 	return isAdmin, nil
+}
+
+func (s *Storage) App(ctx context.Context, id int) (models.App, error) {
+	const op = "storage.sqlite.App"
+
+	stmt, err := s.db.Prepare("SELECT id, name, secret FROM apps WHERE id = ?")
+	if err != nil {
+		return models.App{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	row := stmt.QueryRowContext(ctx, id)
+
+	var app models.App
+	err = row.Scan(&app.Id, &app.Name, &app.Secret)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.App{}, fmt.Errorf("%s: %w", op, storage.ErrAppNotFound)
+		}
+
+		return models.App{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return app, nil
 }
