@@ -1,0 +1,92 @@
+package sqlite
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"sso/internal/domain/models"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+type Storage struct {
+	db *sql.DB
+}
+
+func New(storagePath string) (*Storage, error) {
+	const op = "storage.sqlite.New"
+
+	db, err := sql.Open("sqlite3", storagePath)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &Storage{db: db}, nil
+}
+
+// Реализуем все методы interface IUserSaver и IUserProvider из файла /services/auth/auth.go
+func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (int64, error) {
+	const op = "storage.sqlite.SaveUser"
+
+	stmt, err := s.db.Prepare(`INSERT INTO users(email, pass_hash) VALUES(?, ?)`)
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	res, err := stmt.ExecContext(ctx, email, passHash)
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	userId, err := res.LastInsertId()
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return userId, nil
+}
+
+// User и GetUser это одно и тоже
+func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
+	const op = "storage.sqlite.User"
+
+	stmt, err := s.db.Prepare(`SELECT id, email, pass_hash FROM users WHERE email = ?`)
+
+	if err != nil {
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	row := stmt.QueryRowContext(ctx, email)
+
+	var user models.User
+
+	if err := row.Scan(&user.Id, &user.Email, &user.PassHash); err != nil {
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return user, nil
+}
+
+func (s *Storage) IsAdmin(ctx context.Context, userId int64) (bool, error) {
+	const op = "storage.sqlite.IsAdmin"
+
+	stmt, err := s.db.Prepare(`SELECT is_admin FROM users WHERE id = ?`)
+
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	row := stmt.QueryRowContext(ctx, userId)
+
+	var isAdmin bool
+
+	if err := row.Scan(&isAdmin); err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return isAdmin, nil
+}

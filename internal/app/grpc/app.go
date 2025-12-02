@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net"
 	"sso/internal/grpc/auth"
+	authService "sso/internal/services/auth"
+	"sso/internal/storage/sqlite"
 
 	"google.golang.org/grpc"
 )
@@ -18,7 +20,11 @@ type App struct {
 func New(logger *slog.Logger, port int) *App {
 	gRPCServer := grpc.NewServer()
 
-	auth.PlugHandlers(gRPCServer)
+	storage, err := sqlite.New("asd")
+
+	aa := authService.New(logger)
+
+	auth.PlugHandlers(gRPCServer, aa) // к gRPC сервису подключаем handlers
 
 	return &App{
 		logger:     logger,
